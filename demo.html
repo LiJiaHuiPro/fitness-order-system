@@ -7,15 +7,15 @@
   <style>
     :root { color-scheme: light; }
     * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Segoe UI", sans-serif; }
-    body { margin: 0; background: radial-gradient(circle at top, #dbeafe 0%, #eef4ff 30%, #f8fbff 60%, #f4f6fb 100%); color: #0f172a; }
+    body { margin: 0; background: radial-gradient(circle at top, #cfe3ff 0%, #eaf2ff 28%, #f8fbff 62%, #f4f6fb 100%); color: #0f172a; }
     .container { max-width: 1020px; margin: 0 auto; padding: 16px; }
     .hero {
       margin-bottom: 12px;
-      padding: 20px;
-      border-radius: 16px;
-      background: linear-gradient(135deg, #1d4ed8, #2563eb 55%, #60a5fa);
+      padding: 22px;
+      border-radius: 18px;
+      background: linear-gradient(135deg, #1e40af, #2563eb 52%, #60a5fa);
       color: #fff;
-      box-shadow: 0 14px 30px rgba(37,99,235,.28);
+      box-shadow: 0 16px 34px rgba(37,99,235,.3);
       position: relative;
       overflow: hidden;
     }
@@ -31,15 +31,15 @@
     }
     .hero h1 { margin: 0 0 6px; font-size: 22px; }
     .hero p { margin: 0; opacity: .95; font-size: 14px; }
-    .card { background: rgba(255,255,255,.94); backdrop-filter: blur(2px); border-radius: 14px; padding: 16px; box-shadow: 0 8px 24px rgba(2, 6, 23, 0.06); margin-bottom: 12px; border: 1px solid #e6edf9; }
+    .card { background: rgba(255,255,255,.95); backdrop-filter: blur(3px); border-radius: 14px; padding: 16px; box-shadow: 0 10px 28px rgba(2, 6, 23, 0.08); margin-bottom: 12px; border: 1px solid #e6edf9; }
     h2, h3 { margin: 0 0 12px; }
     input, select, textarea, button { width: 100%; padding: 11px; border-radius: 10px; border: 1px solid #d7e0ef; margin-bottom: 10px; font-size: 14px; }
     input:focus, textarea:focus, select:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,.15); }
-    button { background: #2563eb; color: #fff; border: none; cursor: pointer; font-weight: 600; transition: transform .08s ease, box-shadow .2s ease, opacity .2s ease; }
-    button:hover { box-shadow: 0 6px 14px rgba(37,99,235,.25); }
+    button { background: linear-gradient(135deg, #2563eb, #1d4ed8); color: #fff; border: none; cursor: pointer; font-weight: 600; transition: transform .08s ease, box-shadow .2s ease, opacity .2s ease; }
+    button:hover { box-shadow: 0 8px 16px rgba(37,99,235,.28); }
     button:active { transform: translateY(1px); }
-    button.secondary { background: #64748b; }
-    button.success { background: #16a34a; }
+    button.secondary { background: linear-gradient(135deg, #64748b, #475569); }
+    button.success { background: linear-gradient(135deg, #16a34a, #15803d); }
     button.light { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
     .grid { display: grid; gap: 12px; }
     .grid-2 { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
@@ -51,9 +51,10 @@
     .completed { background: #dcfce7; }
     .cancelled { background: #e5e7eb; }
     .hidden { display: none; }
-    .order { border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; margin-bottom: 10px; background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%); }
+    .order { border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; margin-bottom: 10px; background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%); transition: box-shadow .2s ease, transform .08s ease; }
+    .order:hover { box-shadow: 0 8px 20px rgba(15,23,42,.08); transform: translateY(-1px); }
     .muted { color: #6b7280; font-size: 13px; }
-    .stat { text-align: center; padding: 14px; border-radius: 12px; background: #f8fbff; border: 1px solid #dbeafe; }
+    .stat { text-align: center; padding: 14px; border-radius: 12px; background: linear-gradient(180deg, #f8fbff, #f3f8ff); border: 1px solid #dbeafe; }
     .stat b { display: block; font-size: 24px; margin-top: 6px; }
     .tabs { display: flex; gap: 8px; margin-bottom: 12px; }
     .tabs button { margin-bottom: 0; }
