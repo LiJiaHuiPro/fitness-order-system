@@ -63,6 +63,35 @@
     .worker-chip { display: inline-block; padding: 6px 10px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 999px; margin: 0 8px 8px 0; font-size: 13px; color: #1e3a8a; }
     .section-title { display: flex; align-items: center; gap: 8px; }
     .dot { width: 8px; height: 8px; border-radius: 999px; background: #3b82f6; }
+    .select-wrap { position: relative; }
+    .select-wrap select {
+      appearance: none;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+      border: 1px solid #bfdbfe;
+      color: #0f172a;
+      font-weight: 600;
+      min-height: 44px;
+      padding-right: 40px;
+      margin-bottom: 0;
+    }
+    .select-wrap::after {
+      content: "⌄";
+      position: absolute;
+      right: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #2563eb;
+      font-size: 16px;
+      pointer-events: none;
+      font-weight: 700;
+    }
+    .select-wrap select:focus {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 4px rgba(59,130,246,.18);
+    }
+    .field-hint { margin: 6px 0 0; color: #64748b; font-size: 12px; }
     @media (max-width: 640px) {
       .container { padding: 10px; }
       .hero { padding: 14px; border-radius: 12px; }
@@ -71,6 +100,13 @@
       .tabs { flex-direction: column; }
       .row .btn-fit { width: 100%; }
       .stat b { font-size: 20px; }
+      .select-wrap select {
+        font-size: 16px;
+        min-height: 48px;
+        border-radius: 12px;
+        padding-left: 12px;
+      }
+      .select-wrap::after { right: 12px; font-size: 18px; }
     }
   </style>
 </head>
@@ -91,17 +127,20 @@
         <div class="grid grid-2">
           <input id="cName" placeholder="姓名" />
           <input id="cStudentNo" placeholder="学号" />
-          <select id="cProject">
-            <option value="">请选择体测项目</option>
-            <option value="50米">50米</option>
-            <option value="800米">800米</option>
-            <option value="1000米">1000米</option>
-            <option value="立定跳远">立定跳远</option>
-            <option value="坐位体前屈">坐位体前屈</option>
-            <option value="肺活量">肺活量</option>
-            <option value="仰卧起坐">仰卧起坐</option>
-            <option value="引体向上">引体向上</option>
-          </select>
+          <div class="select-wrap">
+            <select id="cProject">
+              <option value="">请选择体测项目</option>
+              <option value="50米">50米</option>
+              <option value="800米">800米</option>
+              <option value="1000米">1000米</option>
+              <option value="立定跳远">立定跳远</option>
+              <option value="坐位体前屈">坐位体前屈</option>
+              <option value="肺活量">肺活量</option>
+              <option value="仰卧起坐">仰卧起坐</option>
+              <option value="引体向上">引体向上</option>
+            </select>
+            <p class="field-hint">已按体测项目分类，方便接单大厅快速匹配</p>
+          </div>
         </div>
         <textarea id="cRequirement" rows="2" placeholder="要求"></textarea>
         <textarea id="cRemark" rows="2" placeholder="备注（请写上微信名，有什么情况方便协商）"></textarea>
