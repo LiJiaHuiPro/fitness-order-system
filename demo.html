@@ -45,6 +45,7 @@
     .grid-2 { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
     .row { display: flex; gap: 8px; flex-wrap: wrap; }
     .row .btn-fit { width: auto; min-width: 120px; }
+    .row .grow { flex: 1; min-width: 160px; }
     .badge { padding: 2px 8px; border-radius: 999px; font-size: 12px; }
     .pending { background: #fef3c7; }
     .in_progress { background: #dbeafe; }
@@ -59,6 +60,7 @@
     .tabs { display: flex; gap: 8px; margin-bottom: 12px; }
     .tabs button { margin-bottom: 0; }
     .hint { background: #fff7ed; color: #9a3412; border: 1px solid #fed7aa; padding: 9px 10px; border-radius: 10px; font-size: 13px; margin-bottom: 10px; }
+    .worker-chip { display: inline-block; padding: 6px 10px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 999px; margin: 0 8px 8px 0; font-size: 13px; color: #1e3a8a; }
     .section-title { display: flex; align-items: center; gap: 8px; }
     .dot { width: 8px; height: 8px; border-radius: 999px; background: #3b82f6; }
     @media (max-width: 640px) {
@@ -76,7 +78,6 @@
   <div class="container">
     <div class="hero">
       <h1>体测接单管理系统</h1>
-      <p>学生可直接下单，接单人与管理员登录后处理订单。</p>
     </div>
 
     <div id="publicView" class="card">
@@ -145,6 +146,18 @@
           <div class="grid grid-2" id="adminStats"></div>
         </div>
         <div class="card">
+          <h3>接单人概览</h3>
+          <div id="adminWorkers"></div>
+        </div>
+        <div class="card">
+          <h3>待接订单</h3>
+          <div id="adminPendingOrders"></div>
+        </div>
+        <div class="card">
+          <h3>已接订单</h3>
+          <div id="adminTakenOrders"></div>
+        </div>
+        <div class="card">
           <div class="row" style="justify-content:space-between;align-items:center;">
             <h3 style="margin:0;">全部订单</h3>
             <button id="clearOrdersBtn" class="secondary" style="width:auto;">清空订单数据</button>
@@ -182,6 +195,23 @@
         <div class="muted">要求：${order.requirement || "-"} | 备注：${order.remark || "-"}</div>
         <div class="muted">接单人：${order.workerUsername || "暂无"} | <span class="badge ${order.status}">${statusText(order.status)}</span></div>
         ${actionHtml}
+      </div>`;
+    }
+    function renderAdminPendingOrder(order, workers) {
+      const options = workers.map((w) => `<option value="${w.id}">${w.username}</option>`).join("");
+      const disabled = workers.length ? "" : "disabled";
+      return `
+      <div class="order">
+        <div><b>${order.name}</b>（${order.studentNo}） - ${order.project}</div>
+        <div class="muted">学生：${order.clientUsername}</div>
+        <div class="muted">要求：${order.requirement || "-"} | 备注：${order.remark || "-"}</div>
+        <div class="row" style="margin-top:8px;">
+          <select class="grow" data-assign-worker="${order.id}" ${disabled}>
+            <option value="">选择接单人</option>
+            ${options}
+          </select>
+          <button class="btn-fit" data-assign="${order.id}" ${disabled}>指派</button>
+        </div>
       </div>`;
     }
     function showMsg(id, text, ok = false) {
@@ -313,7 +343,7 @@
           renderAdmin();
         };
       }
-      Promise.all([api("/api/admin/stats"), api("/api/admin/orders")]).then(([stats, rows]) => {
+      Promise.all([api("/api/admin/stats"), api("/api/admin/orders"), api("/api/admin/workers")]).then(([stats, rows, workers]) => {
         const total = stats.total;
         const pending = stats.pending;
         const progress = stats.inProgress;
@@ -329,7 +359,31 @@
           <div class="stat">接单排行<b style="font-size:14px;">${rank}</b></div>
         `;
         const orders = rows.map(mapOrder);
+        $("adminWorkers").innerHTML = workers.length
+          ? workers.map((w) => `<span class="worker-chip">${w.username}（进行中:${w.in_progress_count || 0}，已完成:${w.completed_count || 0}）</span>`).join("")
+          : '<p class="muted">暂无接单人</p>';
+        const pendingOrders = orders.filter((o) => o.status === "pending");
+        const takenOrders = orders.filter((o) => o.status !== "pending");
+        $("adminPendingOrders").innerHTML = pendingOrders.length
+          ? pendingOrders.map((o) => renderAdminPendingOrder(o, workers)).join("")
+          : '<p class="muted">暂无待接订单</p>';
+        $("adminTakenOrders").innerHTML = takenOrders.length
+          ? takenOrders.map((o) => renderOrder(o)).join("")
+          : '<p class="muted">暂无已接订单</p>';
         $("adminOrders").innerHTML = orders.length ? orders.map((o) => renderOrder(o)).join("") : '<p class="muted">暂无订单</p>';
+        document.querySelectorAll("[data-assign]").forEach((btn) => {
+          btn.onclick = async () => {
+            const id = btn.getAttribute("data-assign");
+            const workerSelect = document.querySelector(`[data-assign-worker="${id}"]`);
+            const workerId = Number(workerSelect?.value || 0);
+            if (!workerId) return alert("请先选择接单人");
+            await api(`/api/admin/orders/${id}/assign`, {
+              method: "POST",
+              body: JSON.stringify({ workerId })
+            }).catch((e) => alert(e.message));
+            renderAdmin();
+          };
+        });
       }).catch(() => {
         $("adminStats").innerHTML = '<p class="muted">加载失败，请重试</p>';
       });

@@ -171,6 +171,24 @@ app.get("/api/admin/orders", (req, res) => {
   res.json(rows);
 });
 
+app.get("/api/admin/workers", (req, res) => {
+  const denied = requireAuth(req, res, ["admin"]);
+  if (denied) return;
+  const rows = db.prepare(`
+    SELECT
+      u.id,
+      u.username,
+      SUM(CASE WHEN o.status='in_progress' THEN 1 ELSE 0 END) AS in_progress_count,
+      SUM(CASE WHEN o.status='completed' THEN 1 ELSE 0 END) AS completed_count
+    FROM users u
+    LEFT JOIN orders o ON o.worker_id = u.id
+    WHERE u.role='worker'
+    GROUP BY u.id, u.username
+    ORDER BY u.created_at DESC
+  `).all();
+  res.json(rows);
+});
+
 app.get("/api/admin/stats", (req, res) => {
   const denied = requireAuth(req, res, ["admin"]);
   if (denied) return;
@@ -187,6 +205,25 @@ app.get("/api/admin/stats", (req, res) => {
     LIMIT 5
   `).all();
   res.json({ total, pending, inProgress, completed, ranks });
+});
+
+app.post("/api/admin/orders/:id/assign", (req, res) => {
+  const denied = requireAuth(req, res, ["admin"]);
+  if (denied) return;
+  const id = Number(req.params.id);
+  const workerId = Number(req.body.workerId);
+  if (!id || !workerId) return res.status(400).json({ message: "参数错误" });
+  const order = db.prepare("SELECT id, status FROM orders WHERE id=?").get(id);
+  if (!order) return res.status(404).json({ message: "订单不存在" });
+  if (order.status !== "pending") return res.status(400).json({ message: "仅待抢单可指派" });
+  const worker = db.prepare("SELECT id, username FROM users WHERE id=? AND role='worker'").get(workerId);
+  if (!worker) return res.status(400).json({ message: "接单人不存在" });
+  db.prepare(`
+    UPDATE orders
+    SET status='in_progress', worker_id=?, worker_username=?, accepted_at=?
+    WHERE id=? AND status='pending'
+  `).run(worker.id, worker.username, Date.now(), id);
+  res.json({ message: "指派成功" });
 });
 
 app.delete("/api/admin/orders", (req, res) => {
