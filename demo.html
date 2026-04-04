@@ -61,6 +61,23 @@
     .tabs button { margin-bottom: 0; }
     .hint { background: #fff7ed; color: #9a3412; border: 1px solid #fed7aa; padding: 9px 10px; border-radius: 10px; font-size: 13px; margin-bottom: 10px; }
     .worker-chip { display: inline-block; padding: 6px 10px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 999px; margin: 0 8px 8px 0; font-size: 13px; color: #1e3a8a; }
+    .assign-worker-options { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+    .assign-worker-option {
+      width: auto;
+      margin: 0;
+      padding: 7px 12px;
+      border-radius: 999px;
+      border: 1px solid #bfdbfe;
+      background: #eff6ff;
+      color: #1e3a8a;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .assign-worker-option.active {
+      background: linear-gradient(135deg, #2563eb, #1d4ed8);
+      border-color: #1d4ed8;
+      color: #fff;
+    }
     .section-title { display: flex; align-items: center; gap: 8px; }
     .dot { width: 8px; height: 8px; border-radius: 999px; background: #3b82f6; }
     .project-picker { margin-bottom: 10px; }
@@ -94,6 +111,7 @@
       .tabs { flex-direction: column; }
       .row .btn-fit { width: 100%; }
       .stat b { font-size: 20px; }
+      .assign-worker-option { min-height: 38px; }
       .gender-option { min-height: 44px; font-size: 15px; }
       .project-options { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
       .project-option { min-height: 44px; font-size: 15px; }
@@ -261,19 +279,21 @@
     }
     function renderAdminPendingOrder(order, workers) {
       const createdAtText = order.createdAt ? new Date(order.createdAt).toLocaleString("zh-CN") : "-";
-      const options = workers.map((w) => `<option value="${w.id}">${w.username}</option>`).join("");
       const disabled = workers.length ? "" : "disabled";
+      const options = workers.map((w) => `
+        <button type="button" class="assign-worker-option" data-assign-worker-option="${order.id}" data-worker-id="${w.id}">
+          ${w.username}
+        </button>
+      `).join("");
       return `
       <div class="order">
         <div><b>${order.name}</b>（${order.studentNo}） - ${order.project}</div>
         <div class="muted">学生：${order.clientUsername} | 下单时间：${createdAtText}</div>
         <div class="muted">性别：${order.gender || "-"} | 微信名：${order.remark || "-"}</div>
         <div class="muted">要求：${order.requirement || "-"}</div>
+        <input type="hidden" data-assign-worker="${order.id}" />
+        <div class="assign-worker-options">${options || '<span class="muted">暂无可指派接单人</span>'}</div>
         <div class="row" style="margin-top:8px;">
-          <select class="grow" data-assign-worker="${order.id}" ${disabled}>
-            <option value="">选择接单人</option>
-            ${options}
-          </select>
           <button class="btn-fit" data-assign="${order.id}" ${disabled}>指派</button>
         </div>
       </div>`;
@@ -507,6 +527,17 @@
               body: JSON.stringify({ workerId })
             }).catch((e) => alert(e.message));
             renderAdmin();
+          };
+        });
+        document.querySelectorAll("[data-assign-worker-option]").forEach((btn) => {
+          btn.onclick = () => {
+            const orderId = btn.getAttribute("data-assign-worker-option");
+            const workerId = btn.getAttribute("data-worker-id");
+            if (!orderId || !workerId) return;
+            document.querySelectorAll(`[data-assign-worker-option="${orderId}"]`).forEach((b) => b.classList.remove("active"));
+            btn.classList.add("active");
+            const hidden = document.querySelector(`[data-assign-worker="${orderId}"]`);
+            if (hidden) hidden.value = workerId;
           };
         });
         document.querySelectorAll("[data-delete]").forEach((btn) => {
