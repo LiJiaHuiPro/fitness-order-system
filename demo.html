@@ -24,7 +24,7 @@
       position: absolute;
       right: -30px;
       top: -30px;
-      width: 140px
+      width: 140px;
       height: 140px;
       border-radius: 50%;
       background: rgba(255,255,255,.16);
@@ -91,7 +91,6 @@
           <input id="cName" placeholder="姓名" />
           <input id="cStudentNo" placeholder="学号" />
           <input id="cProject" placeholder="体测项目（如：1000米）" />
-          <input id="cAmount" type="number" min="0" step="0.01" placeholder="金额" />
         </div>
         <textarea id="cRequirement" rows="2" placeholder="要求"></textarea>
         <textarea id="cRemark" rows="2" placeholder="备注"></textarea>
@@ -146,7 +145,10 @@
           <div class="grid grid-2" id="adminStats"></div>
         </div>
         <div class="card">
-          <h3>全部订单</h3>
+          <div class="row" style="justify-content:space-between;align-items:center;">
+            <h3 style="margin:0;">全部订单</h3>
+            <button id="clearOrdersBtn" class="secondary" style="width:auto;">清空订单数据</button>
+          </div>
           <div id="adminOrders"></div>
         </div>
       </div>
@@ -176,7 +178,7 @@
       return `
       <div class="order">
         <div><b>${order.name}</b>（${order.studentNo}） - ${order.project}</div>
-        <div class="muted">金额：¥${Number(order.amount).toFixed(2)} | 客户：${order.clientUsername}</div>
+        <div class="muted">学生：${order.clientUsername}</div>
         <div class="muted">要求：${order.requirement || "-"} | 备注：${order.remark || "-"}</div>
         <div class="muted">接单人：${order.workerUsername || "暂无"} | <span class="badge ${order.status}">${statusText(order.status)}</span></div>
         ${actionHtml}
@@ -254,17 +256,16 @@
           name: $("cName").value.trim(),
           studentNo: $("cStudentNo").value.trim(),
           project: $("cProject").value.trim(),
-          amount: $("cAmount").value,
           requirement: $("cRequirement").value.trim(),
           remark: $("cRemark").value.trim()
         };
-        if (!payload.name || !payload.studentNo || !payload.project || payload.amount === "") return showMsg("clientMsg", "姓名/学号/项目/金额必填");
+        if (!payload.name || !payload.studentNo || !payload.project) return showMsg("clientMsg", "姓名/学号/项目必填");
         api("/api/orders", {
           method: "POST",
           body: JSON.stringify(payload)
         })
           .then(() => {
-            ["cName", "cStudentNo", "cProject", "cAmount", "cRequirement", "cRemark"].forEach((id) => $(id).value = "");
+            ["cName", "cStudentNo", "cProject", "cRequirement", "cRemark"].forEach((id) => $(id).value = "");
             showMsg("clientMsg", "下单成功", true);
           })
           .catch((e) => showMsg("clientMsg", e.message));
@@ -304,6 +305,14 @@
 
     function renderAdmin() {
       $("adminPanel").classList.remove("hidden");
+      const clearBtn = $("clearOrdersBtn");
+      if (clearBtn) {
+        clearBtn.onclick = async () => {
+          if (!confirm("确认清空全部订单数据？此操作不可恢复。")) return;
+          await api("/api/admin/orders", { method: "DELETE" }).catch((e) => alert(e.message));
+          renderAdmin();
+        };
+      }
       Promise.all([api("/api/admin/stats"), api("/api/admin/orders")]).then(([stats, rows]) => {
         const total = stats.total;
         const pending = stats.pending;

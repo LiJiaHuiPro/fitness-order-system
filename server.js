@@ -104,11 +104,11 @@ app.post("/api/orders", (req, res) => {
   const clientName = String(req.body.name || "").trim();
   const studentNo = String(req.body.studentNo || "").trim();
   const project = String(req.body.project || "").trim();
-  const amount = Number(req.body.amount);
+  const amount = Number(req.body.amount ?? 0);
   const requirement = String(req.body.requirement || "").trim();
   const remark = String(req.body.remark || "").trim();
   if (!clientName || !studentNo || !project || Number.isNaN(amount)) {
-    return res.status(400).json({ message: "姓名/学号/项目/金额必填" });
+    return res.status(400).json({ message: "姓名/学号/项目必填" });
   }
   try {
     db.prepare(`
@@ -187,6 +187,13 @@ app.get("/api/admin/stats", (req, res) => {
     LIMIT 5
   `).all();
   res.json({ total, pending, inProgress, completed, ranks });
+});
+
+app.delete("/api/admin/orders", (req, res) => {
+  const denied = requireAuth(req, res, ["admin"]);
+  if (denied) return;
+  db.prepare("DELETE FROM orders").run();
+  res.json({ message: "订单数据已清空" });
 });
 
 app.listen(PORT, () => {
