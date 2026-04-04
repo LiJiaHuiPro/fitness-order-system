@@ -233,6 +233,16 @@ app.delete("/api/admin/orders", (req, res) => {
   res.json({ message: "订单数据已清空" });
 });
 
+app.delete("/api/admin/orders/:id", (req, res) => {
+  const denied = requireAuth(req, res, ["admin"]);
+  if (denied) return;
+  const id = Number(req.params.id);
+  if (!id) return res.status(400).json({ message: "参数错误" });
+  const result = db.prepare("DELETE FROM orders WHERE id=?").run(id);
+  if (!result.changes) return res.status(404).json({ message: "订单不存在" });
+  res.json({ message: "订单已删除" });
+});
+
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });

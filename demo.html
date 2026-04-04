@@ -188,22 +188,24 @@
       return ({ pending: "待抢单", in_progress: "进行中", completed: "已完成", cancelled: "已取消" })[s] || s;
     }
     function renderOrder(order, actionHtml = "") {
+      const createdAtText = order.createdAt ? new Date(order.createdAt).toLocaleString("zh-CN") : "-";
       return `
       <div class="order">
         <div><b>${order.name}</b>（${order.studentNo}） - ${order.project}</div>
-        <div class="muted">学生：${order.clientUsername}</div>
+        <div class="muted">学生：${order.clientUsername} | 下单时间：${createdAtText}</div>
         <div class="muted">要求：${order.requirement || "-"} | 备注：${order.remark || "-"}</div>
         <div class="muted">接单人：${order.workerUsername || "暂无"} | <span class="badge ${order.status}">${statusText(order.status)}</span></div>
         ${actionHtml}
       </div>`;
     }
     function renderAdminPendingOrder(order, workers) {
+      const createdAtText = order.createdAt ? new Date(order.createdAt).toLocaleString("zh-CN") : "-";
       const options = workers.map((w) => `<option value="${w.id}">${w.username}</option>`).join("");
       const disabled = workers.length ? "" : "disabled";
       return `
       <div class="order">
         <div><b>${order.name}</b>（${order.studentNo}） - ${order.project}</div>
-        <div class="muted">学生：${order.clientUsername}</div>
+        <div class="muted">学生：${order.clientUsername} | 下单时间：${createdAtText}</div>
         <div class="muted">要求：${order.requirement || "-"} | 备注：${order.remark || "-"}</div>
         <div class="row" style="margin-top:8px;">
           <select class="grow" data-assign-worker="${order.id}" ${disabled}>
@@ -307,7 +309,7 @@
       const refresh = async () => {
         const hallRows = await api("/api/orders/hall").catch(() => []);
         const mineRows = await api("/api/orders/mine").catch(() => []);
-        const hall = hallRows.map(mapOrder);
+        const hall = hallRows.map(mapOrder).sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
         const mine = mineRows.map(mapOrder);
         $("hallOrders").innerHTML = hall.length
           ? hall.map((o) => renderOrder(o, `<button data-accept="${o.id}">接单</button>`)).join("")
@@ -362,15 +364,19 @@
         $("adminWorkers").innerHTML = workers.length
           ? workers.map((w) => `<span class="worker-chip">${w.username}（进行中:${w.in_progress_count || 0}，已完成:${w.completed_count || 0}）</span>`).join("")
           : '<p class="muted">暂无接单人</p>';
-        const pendingOrders = orders.filter((o) => o.status === "pending");
+        const pendingOrders = orders
+          .filter((o) => o.status === "pending")
+          .sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
         const takenOrders = orders.filter((o) => o.status !== "pending");
         $("adminPendingOrders").innerHTML = pendingOrders.length
           ? pendingOrders.map((o) => renderAdminPendingOrder(o, workers)).join("")
           : '<p class="muted">暂无待接订单</p>';
         $("adminTakenOrders").innerHTML = takenOrders.length
-          ? takenOrders.map((o) => renderOrder(o)).join("")
+          ? takenOrders.map((o) => renderOrder(o, `<button class="secondary" data-delete="${o.id}">删除订单</button>`)).join("")
           : '<p class="muted">暂无已接订单</p>';
-        $("adminOrders").innerHTML = orders.length ? orders.map((o) => renderOrder(o)).join("") : '<p class="muted">暂无订单</p>';
+        $("adminOrders").innerHTML = orders.length
+          ? orders.map((o) => renderOrder(o, `<button class="secondary" data-delete="${o.id}">删除订单</button>`)).join("")
+          : '<p class="muted">暂无订单</p>';
         document.querySelectorAll("[data-assign]").forEach((btn) => {
           btn.onclick = async () => {
             const id = btn.getAttribute("data-assign");
@@ -381,6 +387,14 @@
               method: "POST",
               body: JSON.stringify({ workerId })
             }).catch((e) => alert(e.message));
+            renderAdmin();
+          };
+        });
+        document.querySelectorAll("[data-delete]").forEach((btn) => {
+          btn.onclick = async () => {
+            const id = btn.getAttribute("data-delete");
+            if (!confirm("确认删除这个订单？")) return;
+            await api(`/api/admin/orders/${id}`, { method: "DELETE" }).catch((e) => alert(e.message));
             renderAdmin();
           };
         });
