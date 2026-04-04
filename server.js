@@ -128,19 +128,27 @@ app.post("/api/auth/login", (req, res) => {
 app.post("/api/orders", (req, res) => {
   const clientName = String(req.body.name || "").trim();
   const studentNo = String(req.body.studentNo || "").trim();
-  const project = normalizeProject(req.body.project);
+  const projects = Array.isArray(req.body.projects)
+    ? Array.from(new Set(req.body.projects.map((p) => normalizeProject(p)).filter(Boolean)))
+    : [normalizeProject(req.body.project)].filter(Boolean);
   const amount = Number(req.body.amount ?? 0);
   const requirement = String(req.body.requirement || "").trim();
   const gender = String(req.body.gender || "").trim();
   const remark = String(req.body.remark || "").trim();
-  if (!clientName || !studentNo || !gender || !project || !remark || Number.isNaN(amount)) {
-    return res.status(400).json({ message: "姓名/学号/性别/项目/微信名必填" });
+  if (!clientName || !studentNo || !gender || !projects.length || !remark || Number.isNaN(amount)) {
+    return res.status(400).json({ message: "姓名/学号/性别/项目(可多选)/微信名必填" });
   }
   try {
-    db.prepare(`
+    const insertOrder = db.prepare(`
       INSERT INTO orders(client_name, student_no, project, amount, requirement, remark, gender, status, created_at)
       VALUES(?,?,?,?,?,?,?,?,?)
-    `).run(clientName, studentNo, project, amount, requirement, remark, gender, "pending", Date.now());
+    `);
+    const createOrders = db.transaction(() => {
+      for (const project of projects) {
+        insertOrder.run(clientName, studentNo, project, amount, requirement, remark, gender, "pending", Date.now());
+      }
+    });
+    createOrders();
     res.json({ message: "下单成功" });
   } catch (e) {
     if (String(e.message).includes("idx_orders_dedup")) {

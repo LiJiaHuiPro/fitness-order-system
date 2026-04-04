@@ -154,7 +154,7 @@
               <button type="button" class="project-option" data-project-option="仰卧起坐">仰卧起坐</button>
               <button type="button" class="project-option" data-project-option="引体向上">引体向上</button>
             </div>
-            <p class="field-hint">请选择体测项目（不含身高体重）</p>
+            <p class="field-hint">体测项目可多选，系统会按项目拆分订单，微信名与要求保持一致</p>
           </div>
         </div>
         <textarea id="cRequirement" rows="2" placeholder="要求"></textarea>
@@ -322,12 +322,20 @@
     }
 
     function bindAuth() {
+      const selectedProjects = new Set();
       const bindProjectPicker = () => {
         document.querySelectorAll("[data-project-option]").forEach((btn) => {
           btn.onclick = () => {
-            document.querySelectorAll("[data-project-option]").forEach((b) => b.classList.remove("active"));
-            btn.classList.add("active");
-            $("cProject").value = btn.getAttribute("data-project-option") || "";
+            const project = btn.getAttribute("data-project-option") || "";
+            if (!project) return;
+            if (selectedProjects.has(project)) {
+              selectedProjects.delete(project);
+              btn.classList.remove("active");
+            } else {
+              selectedProjects.add(project);
+              btn.classList.add("active");
+            }
+            $("cProject").value = JSON.stringify(Array.from(selectedProjects));
           };
         });
       };
@@ -391,12 +399,12 @@
           name: $("cName").value.trim(),
           studentNo: $("cStudentNo").value.trim(),
           gender: $("cGender").value.trim(),
-          project: $("cProject").value.trim(),
+          projects: JSON.parse($("cProject").value || "[]"),
           requirement: $("cRequirement").value.trim(),
           remark: $("cRemark").value.trim()
         };
-        if (!payload.name || !payload.studentNo || !payload.gender || !payload.project || !payload.remark) {
-          return showMsg("clientMsg", "姓名/学号/性别/项目/微信名必填");
+        if (!payload.name || !payload.studentNo || !payload.gender || !payload.projects.length || !payload.remark) {
+          return showMsg("clientMsg", "姓名/学号/性别/项目(可多选)/微信名必填");
         }
         api("/api/orders", {
           method: "POST",
@@ -406,6 +414,7 @@
             ["cName", "cStudentNo", "cGender", "cProject", "cRequirement", "cRemark"].forEach((id) => $(id).value = "");
             document.querySelectorAll("[data-gender-option]").forEach((b) => b.classList.remove("active"));
             document.querySelectorAll("[data-project-option]").forEach((b) => b.classList.remove("active"));
+            selectedProjects.clear();
             showMsg("clientMsg", "下单成功", true);
           })
           .catch((e) => showMsg("clientMsg", e.message));
