@@ -91,7 +91,17 @@
         <div class="grid grid-2">
           <input id="cName" placeholder="姓名" />
           <input id="cStudentNo" placeholder="学号" />
-          <input id="cProject" placeholder="体测项目（如：1000米）" />
+          <select id="cProject">
+            <option value="">请选择体测项目</option>
+            <option value="50米">50米</option>
+            <option value="800米">800米</option>
+            <option value="1000米">1000米</option>
+            <option value="立定跳远">立定跳远</option>
+            <option value="坐位体前屈">坐位体前屈</option>
+            <option value="肺活量">肺活量</option>
+            <option value="仰卧起坐">仰卧起坐</option>
+            <option value="引体向上">引体向上</option>
+          </select>
         </div>
         <textarea id="cRequirement" rows="2" placeholder="要求"></textarea>
         <textarea id="cRemark" rows="2" placeholder="备注（请写上微信名，有什么情况方便协商）"></textarea>
@@ -311,9 +321,22 @@
         const mineRows = await api("/api/orders/mine").catch(() => []);
         const hall = hallRows.map(mapOrder).sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
         const mine = mineRows.map(mapOrder);
-        $("hallOrders").innerHTML = hall.length
-          ? hall.map((o) => renderOrder(o, `<button data-accept="${o.id}">接单</button>`)).join("")
-          : '<p class="muted">暂无可抢订单</p>';
+        if (hall.length) {
+          const groupedHall = hall.reduce((acc, order) => {
+            const key = order.project || "未分类";
+            acc[key] = acc[key] || [];
+            acc[key].push(order);
+            return acc;
+          }, {});
+          $("hallOrders").innerHTML = Object.entries(groupedHall).map(([project, list]) => `
+            <div style="margin-bottom:12px;">
+              <h4 style="margin:0 0 8px;">${project}（${list.length}单）</h4>
+              ${list.map((o) => renderOrder(o, `<button data-accept="${o.id}">接单</button>`)).join("")}
+            </div>
+          `).join("");
+        } else {
+          $("hallOrders").innerHTML = '<p class="muted">暂无可抢订单</p>';
+        }
         $("workerOrders").innerHTML = mine.length
           ? mine.map((o) => renderOrder(o, o.status === "in_progress" ? `<button class="success" data-complete="${o.id}">标记完成</button>` : "")).join("")
           : '<p class="muted">暂无接单记录</p>';
@@ -352,6 +375,19 @@
         const done = stats.completed;
         const rate = total ? ((done / total) * 100).toFixed(1) + "%" : "0%";
         const rank = (stats.ranks || []).map((r) => `${r.worker_username}: ${r.cnt}单`).join(" | ") || "暂无";
+        const projectStats = rows.reduce((acc, row) => {
+          const key = row.project || "未分类";
+          if (!acc[key]) acc[key] = { total: 0, pending: 0, in_progress: 0, completed: 0 };
+          acc[key].total += 1;
+          acc[key][row.status] = (acc[key][row.status] || 0) + 1;
+          return acc;
+        }, {});
+        const projectStatsHtml = Object.entries(projectStats).map(([project, s]) => `
+          <div class="order" style="margin-bottom:8px;">
+            <div><b>${project}</b></div>
+            <div class="muted">总数：${s.total} | 待抢单：${s.pending || 0} | 进行中：${s.in_progress || 0} | 已完成：${s.completed || 0}</div>
+          </div>
+        `).join("") || '<p class="muted">暂无项目统计</p>';
         $("adminStats").innerHTML = `
           <div class="stat">总订单<b>${total}</b></div>
           <div class="stat">待抢单<b>${pending}</b></div>
@@ -359,6 +395,10 @@
           <div class="stat">已完成<b>${done}</b></div>
           <div class="stat">完成率<b>${rate}</b></div>
           <div class="stat">接单排行<b style="font-size:14px;">${rank}</b></div>
+          <div style="grid-column: 1 / -1; text-align:left;">
+            <h4 style="margin:4px 0 10px;">按项目分类统计</h4>
+            ${projectStatsHtml}
+          </div>
         `;
         const orders = rows.map(mapOrder);
         $("adminWorkers").innerHTML = workers.length
