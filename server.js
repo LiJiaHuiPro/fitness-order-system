@@ -8,7 +8,7 @@ const dbPath = process.env.DB_PATH || path.join(__dirname, "data.db");
 const db = new Database(dbPath);
 const PORT = process.env.PORT || 3000;
 const ADMIN_NAME = "18929649836";
-const ADMIN_PASSWORD = "123";
+const ADMIN_PASSWORD = "18929649836";
 
 db.exec(`
 CREATE TABLE IF NOT EXISTS users (
