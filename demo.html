@@ -447,7 +447,12 @@
           $("hallOrders").innerHTML = '<p class="muted">暂无可抢订单</p>';
         }
         $("workerOrders").innerHTML = mine.length
-          ? mine.map((o) => renderOrder(o, o.status === "in_progress" ? `<button class="success" data-complete="${o.id}">标记完成</button>` : "")).join("")
+          ? mine.map((o) => {
+            const actions = [];
+            if (o.status === "in_progress") actions.push(`<button class="success" data-complete="${o.id}">标记完成</button>`);
+            if (o.status === "in_progress" || o.status === "completed") actions.push(`<button class="secondary" data-revert="${o.id}">撤销回大厅</button>`);
+            return renderOrder(o, actions.join(""));
+          }).join("")
           : '<p class="muted">暂无接单记录</p>';
         document.querySelectorAll("[data-accept]").forEach((btn) => {
           btn.onclick = async () => {
@@ -460,6 +465,14 @@
           btn.onclick = async () => {
             const id = btn.getAttribute("data-complete");
             await api(`/api/orders/${id}/complete`, { method: "POST" }).catch((e) => alert(e.message));
+            refresh();
+          };
+        });
+        document.querySelectorAll("[data-revert]").forEach((btn) => {
+          btn.onclick = async () => {
+            const id = btn.getAttribute("data-revert");
+            if (!confirm("确认撤销该订单并放回抢单大厅？")) return;
+            await api(`/api/orders/${id}/revert`, { method: "POST" }).catch((e) => alert(e.message));
             refresh();
           };
         });

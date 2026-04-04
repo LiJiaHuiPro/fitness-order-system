@@ -198,6 +198,22 @@ app.post("/api/orders/:id/complete", (req, res) => {
   res.json({ message: "已完成" });
 });
 
+app.post("/api/orders/:id/revert", (req, res) => {
+  const denied = requireAuth(req, res, ["worker"]);
+  if (denied) return;
+  const id = Number(req.params.id);
+  const row = db.prepare("SELECT id, status, worker_id FROM orders WHERE id=?").get(id);
+  if (!row || row.worker_id !== req.auth.id || !["in_progress", "completed"].includes(row.status)) {
+    return res.status(400).json({ message: "订单不可撤销" });
+  }
+  db.prepare(`
+    UPDATE orders
+    SET status='pending', worker_id=NULL, worker_username=NULL, accepted_at=NULL, completed_at=NULL
+    WHERE id=?
+  `).run(id);
+  res.json({ message: "已撤销并放回大厅" });
+});
+
 app.get("/api/admin/orders", (req, res) => {
   const denied = requireAuth(req, res, ["admin"]);
   if (denied) return;
