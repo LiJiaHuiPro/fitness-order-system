@@ -64,8 +64,10 @@
     .section-title { display: flex; align-items: center; gap: 8px; }
     .dot { width: 8px; height: 8px; border-radius: 999px; background: #3b82f6; }
     .project-picker { margin-bottom: 10px; }
+    .gender-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
     .project-options { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
-    .project-option {
+    .project-option,
+    .gender-option {
       margin: 0;
       border: 1px solid #bfdbfe;
       background: #f8fbff;
@@ -76,7 +78,8 @@
       font-size: 13px;
       font-weight: 600;
     }
-    .project-option.active {
+    .project-option.active,
+    .gender-option.active {
       background: linear-gradient(135deg, #2563eb, #1d4ed8);
       border-color: #1d4ed8;
       color: #fff;
@@ -91,6 +94,7 @@
       .tabs { flex-direction: column; }
       .row .btn-fit { width: 100%; }
       .stat b { font-size: 20px; }
+      .gender-option { min-height: 44px; font-size: 15px; }
       .project-options { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
       .project-option { min-height: 44px; font-size: 15px; }
     }
@@ -113,11 +117,13 @@
         <div class="grid grid-2">
           <input id="cName" placeholder="姓名" />
           <input id="cStudentNo" placeholder="学号" />
-          <select id="cGender">
-            <option value="">请选择性别</option>
-            <option value="男">男</option>
-            <option value="女">女</option>
-          </select>
+          <div class="project-picker">
+            <input id="cGender" type="hidden" />
+            <div class="gender-options">
+              <button type="button" class="gender-option" data-gender-option="男">男</button>
+              <button type="button" class="gender-option" data-gender-option="女">女</button>
+            </div>
+          </div>
           <div class="project-picker" style="grid-column: 1 / -1;">
             <input id="cProject" type="hidden" />
             <div class="project-options">
@@ -305,7 +311,17 @@
           };
         });
       };
+      const bindGenderPicker = () => {
+        document.querySelectorAll("[data-gender-option]").forEach((btn) => {
+          btn.onclick = () => {
+            document.querySelectorAll("[data-gender-option]").forEach((b) => b.classList.remove("active"));
+            btn.classList.add("active");
+            $("cGender").value = btn.getAttribute("data-gender-option") || "";
+          };
+        });
+      };
       bindProjectPicker();
+      bindGenderPicker();
       $("showClientBtn").onclick = () => {
         $("clientBox").classList.remove("hidden");
         $("staffBox").classList.add("hidden");
@@ -368,6 +384,7 @@
         })
           .then(() => {
             ["cName", "cStudentNo", "cGender", "cProject", "cRequirement", "cRemark"].forEach((id) => $(id).value = "");
+            document.querySelectorAll("[data-gender-option]").forEach((b) => b.classList.remove("active"));
             document.querySelectorAll("[data-project-option]").forEach((b) => b.classList.remove("active"));
             showMsg("clientMsg", "下单成功", true);
           })
