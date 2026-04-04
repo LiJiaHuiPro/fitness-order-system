@@ -1,5 +1,8 @@
 [build]
 nixpacks = false
 
+[build.setup]
+commands = ["rm -rf node_modules"]
+
 [build.apt]
 packages = ["build-essential", "python3"]
