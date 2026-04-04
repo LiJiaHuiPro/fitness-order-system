@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>体测接单管理系统</title>
+  <style>
+    :root { color-scheme: light; }
+    * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Segoe UI", sans-serif; }
+    body { margin: 0; background: radial-gradient(circle at top, #dbeafe 0%, #eef4ff 30%, #f8fbff 60%, #f4f6fb 100%); color: #0f172a; }
+    .container { max-width: 1020px; margin: 0 auto; padding: 16px; }
+    .hero {
+      margin-bottom: 12px;
+      padding: 20px;
+      border-radius: 16px;
+      background: linear-gradient(135deg, #1d4ed8, #2563eb 55%, #60a5fa);
+      color: #fff;
+      box-shadow: 0 14px 30px rgba(37,99,235,.28);
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::after {
+      content: "";
+      position: absolute;
+      right: -30px;
+      top: -30px;
+      width: 140px;
+      height: 140px;
+      border-radius: 50%;
+      background: rgba(255,255,255,.16);
+    }
+    .hero h1 { margin: 0 0 6px; font-size: 22px; }
+    .hero p { margin: 0; opacity: .95; font-size: 14px; }
+    .card { background: rgba(255,255,255,.94); backdrop-filter: blur(2px); border-radius: 14px; padding: 16px; box-shadow: 0 8px 24px rgba(2, 6, 23, 0.06); margin-bottom: 12px; border: 1px solid #e6edf9; }
+    h2, h3 { margin: 0 0 12px; }
+    input, select, textarea, button { width: 100%; padding: 11px; border-radius: 10px; border: 1px solid #d7e0ef; margin-bottom: 10px; font-size: 14px; }
+    input:focus, textarea:focus, select:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,.15); }
+    button { background: #2563eb; color: #fff; border: none; cursor: pointer; font-weight: 600; transition: transform .08s ease, box-shadow .2s ease, opacity .2s ease; }
+    button:hover { box-shadow: 0 6px 14px rgba(37,99,235,.25); }
+    button:active { transform: translateY(1px); }
+    button.secondary { background: #64748b; }
+    button.success { background: #16a34a; }
+    button.light { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+    .grid { display: grid; gap: 12px; }
+    .grid-2 { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+    .row { display: flex; gap: 8px; flex-wrap: wrap; }
+    .row .btn-fit { width: auto; min-width: 120px; }
+    .badge { padding: 2px 8px; border-radius: 999px; font-size: 12px; }
+    .pending { background: #fef3c7; }
+    .in_progress { background: #dbeafe; }
+    .completed { background: #dcfce7; }
+    .cancelled { background: #e5e7eb; }
+    .hidden { display: none; }
+    .order { border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; margin-bottom: 10px; background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%); }
+    .muted { color: #6b7280; font-size: 13px; }
+    .stat { text-align: center; padding: 14px; border-radius: 12px; background: #f8fbff; border: 1px solid #dbeafe; }
+    .stat b { display: block; font-size: 24px; margin-top: 6px; }
+    .tabs { display: flex; gap: 8px; margin-bottom: 12px; }
+    .tabs button { margin-bottom: 0; }
+    .hint { background: #fff7ed; color: #9a3412; border: 1px solid #fed7aa; padding: 9px 10px; border-radius: 10px; font-size: 13px; margin-bottom: 10px; }
+    .section-title { display: flex; align-items: center; gap: 8px; }
+    .dot { width: 8px; height: 8px; border-radius: 999px; background: #3b82f6; }
+    @media (max-width: 640px) {
+      .container { padding: 10px; }
+      .hero { padding: 14px; border-radius: 12px; }
+      .hero h1 { font-size: 19px; }
+      .card { padding: 12px; border-radius: 12px; }
+      .tabs { flex-direction: column; }
+      .row .btn-fit { width: 100%; }
+      .stat b { font-size: 20px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="hero">
+      <h1>体测接单管理系统</h1>
+      <p>客户可直接下单，接单人与管理员登录后处理订单。</p>
+    </div>
+
+    <div id="publicView" class="card">
+      <div class="tabs">
+        <button id="showClientBtn" class="light">客户下单</button>
+        <button id="showStaffBtn" class="secondary">接单后台登录/注册</button>
+      </div>
+
+      <div id="clientBox">
+        <h3 class="section-title"><span class="dot"></span>客户下单（免注册）</h3>
+        <div class="grid grid-2">
+          <input id="cName" placeholder="姓名" />
+          <input id="cStudentNo" placeholder="学号" />
+          <input id="cProject" placeholder="体测项目（如：1000米）" />
+          <input id="cAmount" type="number" min="0" step="0.01" placeholder="金额" />
+        </div>
+        <textarea id="cRequirement" rows="2" placeholder="要求"></textarea>
+        <textarea id="cRemark" rows="2" placeholder="备注"></textarea>
+        <button id="createPublicOrderBtn">提交订单</button>
+        <p id="clientMsg"></p>
+      </div>
+
+      <div id="staffBox" class="hidden">
+        <div class="row">
+          <button id="showLoginBtn" class="btn-fit secondary">登录</button>
+          <button id="showRegisterBtn" class="btn-fit light">注册接单人</button>
+        </div>
+        <div id="loginBox">
+          <h3 class="section-title"><span class="dot"></span>后台登录</h3>
+          <input id="loginUsername" placeholder="账号" />
+          <input id="loginPassword" type="password" placeholder="密码" />
+          <button id="loginBtn">进入系统</button>
+        </div>
+        <div id="registerBox" class="hidden">
+          <h3 class="section-title"><span class="dot"></span>接单人注册</h3>
+          <div class="hint">请务必使用真实姓名注册，方便核对接单记录。</div>
+          <input id="regUsername" placeholder="真实姓名（唯一）" />
+          <input id="regPassword" type="password" placeholder="密码" />
+          <button id="registerBtn">创建接单人账号</button>
+        </div>
+        <p id="authMsg"></p>
+      </div>
+    </div>
+
+    <div id="appView" class="hidden">
+      <div class="card">
+        <div class="row" style="justify-content:space-between;align-items:center;">
+          <h2 id="welcome"></h2>
+          <button id="logoutBtn" class="secondary" style="width:auto;">退出登录</button>
+        </div>
+      </div>
+
+      <div id="workerPanel" class="hidden">
+        <div class="card">
+          <h3>抢单大厅（待抢单）</h3>
+          <div id="hallOrders"></div>
+        </div>
+        <div class="card">
+          <h3>接单记录</h3>
+          <div id="workerOrders"></div>
+        </div>
+      </div>
+
+      <div id="adminPanel" class="hidden">
+        <div class="card">
+          <h3>管理员全屏数据</h3>
+          <div class="grid grid-2" id="adminStats"></div>
+        </div>
+        <div class="card">
+          <h3>全部订单</h3>
+          <div id="adminOrders"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const SESSION_KEY = "tm_server_session";
+    const readSession = () => JSON.parse(localStorage.getItem(SESSION_KEY) || "null");
+    const writeSession = (v) => localStorage.setItem(SESSION_KEY, JSON.stringify(v));
+    const clearSession = () => localStorage.removeItem(SESSION_KEY);
+    const api = async (url, options = {}) => {
+      const session = readSession();
+      const headers = { "Content-Type": "application/json", ...(options.headers || {}) };
+      if (session?.token) headers.Authorization = `Bearer ${session.token}`;
+      const res = await fetch(url, { ...options, headers });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.message || "请求失败");
+      return data;
+    };
+
+    function statusText(s) {
+      return ({ pending: "待抢单", in_progress: "进行中", completed: "已完成", cancelled: "已取消" })[s] || s;
+    }
+    function renderOrder(order, actionHtml = "") {
+      return `
+      <div class="order">
+        <div><b>${order.name}</b>（${order.studentNo}） - ${order.project}</div>
+        <div class="muted">金额：¥${Number(order.amount).toFixed(2)} | 客户：${order.clientUsername}</div>
+        <div class="muted">要求：${order.requirement || "-"} | 备注：${order.remark || "-"}</div>
+        <div class="muted">接单人：${order.workerUsername || "暂无"} | <span class="badge ${order.status}">${statusText(order.status)}</span></div>
+        ${actionHtml}
+      </div>`;
+    }
+    function showMsg(id, text, ok = false) {
+      const el = $(id);
+      el.textContent = text;
+      el.style.color = ok ? "#16a34a" : "#dc2626";
+    }
+    function mapOrder(row) {
+      return {
+        id: row.id,
+        name: row.client_name,
+        studentNo: row.student_no,
+        project: row.project,
+        amount: row.amount,
+        requirement: row.requirement,
+        remark: row.remark,
+        status: row.status,
+        workerId: row.worker_id,
+        workerUsername: row.worker_username,
+        clientUsername: row.client_name,
+        createdAt: row.created_at
+      };
+    }
+
+    function bindAuth() {
+      $("showClientBtn").onclick = () => {
+        $("clientBox").classList.remove("hidden");
+        $("staffBox").classList.add("hidden");
+      };
+      $("showStaffBtn").onclick = () => {
+        $("staffBox").classList.remove("hidden");
+        $("clientBox").classList.add("hidden");
+      };
+      $("showLoginBtn").onclick = () => {
+        $("loginBox").classList.remove("hidden");
+        $("registerBox").classList.add("hidden");
+      };
+      $("showRegisterBtn").onclick = () => {
+        $("registerBox").classList.remove("hidden");
+        $("loginBox").classList.add("hidden");
+      };
+      $("registerBtn").onclick = () => {
+        const username = $("regUsername").value.trim();
+        const password = $("regPassword").value.trim();
+        api("/api/auth/register-worker", {
+          method: "POST",
+          body: JSON.stringify({ username, password })
+        })
+          .then((d) => showMsg("authMsg", d.message, true))
+          .catch((e) => showMsg("authMsg", e.message));
+      };
+      $("loginBtn").onclick = () => {
+        const username = $("loginUsername").value.trim();
+        const password = $("loginPassword").value.trim();
+        api("/api/auth/login", {
+          method: "POST",
+          body: JSON.stringify({ username, password })
+        })
+          .then((d) => {
+            writeSession({ token: d.token, user: d.user });
+            renderApp();
+          })
+          .catch((e) => showMsg("authMsg", e.message));
+      };
+      $("logoutBtn").onclick = () => {
+        clearSession();
+        $("publicView").classList.remove("hidden");
+        $("appView").classList.add("hidden");
+      };
+      $("createPublicOrderBtn").onclick = () => {
+        const payload = {
+          name: $("cName").value.trim(),
+          studentNo: $("cStudentNo").value.trim(),
+          project: $("cProject").value.trim(),
+          amount: $("cAmount").value,
+          requirement: $("cRequirement").value.trim(),
+          remark: $("cRemark").value.trim()
+        };
+        if (!payload.name || !payload.studentNo || !payload.project || payload.amount === "") return showMsg("clientMsg", "姓名/学号/项目/金额必填");
+        api("/api/orders", {
+          method: "POST",
+          body: JSON.stringify(payload)
+        })
+          .then(() => {
+            ["cName", "cStudentNo", "cProject", "cAmount", "cRequirement", "cRemark"].forEach((id) => $(id).value = "");
+            showMsg("clientMsg", "下单成功", true);
+          })
+          .catch((e) => showMsg("clientMsg", e.message));
+      };
+    }
+
+    function renderWorker(user) {
+      $("workerPanel").classList.remove("hidden");
+      const refresh = async () => {
+        const hallRows = await api("/api/orders/hall").catch(() => []);
+        const mineRows = await api("/api/orders/mine").catch(() => []);
+        const hall = hallRows.map(mapOrder);
+        const mine = mineRows.map(mapOrder);
+        $("hallOrders").innerHTML = hall.length
+          ? hall.map((o) => renderOrder(o, `<button data-accept="${o.id}">接单</button>`)).join("")
+          : '<p class="muted">暂无可抢订单</p>';
+        $("workerOrders").innerHTML = mine.length
+          ? mine.map((o) => renderOrder(o, o.status === "in_progress" ? `<button class="success" data-complete="${o.id}">标记完成</button>` : "")).join("")
+          : '<p class="muted">暂无接单记录</p>';
+        document.querySelectorAll("[data-accept]").forEach((btn) => {
+          btn.onclick = async () => {
+            const id = btn.getAttribute("data-accept");
+            await api(`/api/orders/${id}/accept`, { method: "POST" }).catch((e) => alert(e.message));
+            refresh();
+          };
+        });
+        document.querySelectorAll("[data-complete]").forEach((btn) => {
+          btn.onclick = async () => {
+            const id = btn.getAttribute("data-complete");
+            await api(`/api/orders/${id}/complete`, { method: "POST" }).catch((e) => alert(e.message));
+            refresh();
+          };
+        });
+      };
+      refresh();
+    }
+
+    function renderAdmin() {
+      $("adminPanel").classList.remove("hidden");
+      Promise.all([api("/api/admin/stats"), api("/api/admin/orders")]).then(([stats, rows]) => {
+        const total = stats.total;
+        const pending = stats.pending;
+        const progress = stats.inProgress;
+        const done = stats.completed;
+        const rate = total ? ((done / total) * 100).toFixed(1) + "%" : "0%";
+        const rank = (stats.ranks || []).map((r) => `${r.worker_username}: ${r.cnt}单`).join(" | ") || "暂无";
+        $("adminStats").innerHTML = `
+          <div class="stat">总订单<b>${total}</b></div>
+          <div class="stat">待抢单<b>${pending}</b></div>
+          <div class="stat">进行中<b>${progress}</b></div>
+          <div class="stat">已完成<b>${done}</b></div>
+          <div class="stat">完成率<b>${rate}</b></div>
+          <div class="stat">接单排行<b style="font-size:14px;">${rank}</b></div>
+        `;
+        const orders = rows.map(mapOrder);
+        $("adminOrders").innerHTML = orders.length ? orders.map((o) => renderOrder(o)).join("") : '<p class="muted">暂无订单</p>';
+      }).catch(() => {
+        $("adminStats").innerHTML = '<p class="muted">加载失败，请重试</p>';
+      });
+    }
+
+    function renderApp() {
+      const session = readSession();
+      const user = session?.user || null;
+      if (!user) {
+        $("publicView").classList.remove("hidden");
+        $("appView").classList.add("hidden");
+        return;
+      }
+      $("publicView").classList.add("hidden");
+      $("appView").classList.remove("hidden");
+      $("welcome").textContent = `你好，${user.username}（${user.role === "worker" ? "接单人" : "管理员"}）`;
+      ["workerPanel", "adminPanel"].forEach((id) => $(id).classList.add("hidden"));
+      if (user.role === "worker") renderWorker(user);
+      if (user.role === "admin") renderAdmin();
+    }
+
+    bindAuth();
+    renderApp();
+  </script>
+</body>
+</html>
