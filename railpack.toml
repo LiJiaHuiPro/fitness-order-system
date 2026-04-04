@@ -1,0 +1,5 @@
+[build]
+nixpacks = false
+
+[build.apt]
+packages = ["build-essential", "python3"]
