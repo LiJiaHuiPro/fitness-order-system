@@ -9,6 +9,21 @@ const db = new Database(dbPath);
 const PORT = process.env.PORT || 3000;
 const ADMIN_NAME = "刘泽璇";
 const ADMIN_PASSWORD = "18929649836";
+const PROJECTS = ["50米", "800米", "1000米", "立定跳远", "坐位体前屈", "肺活量", "仰卧起坐", "引体向上"];
+
+function normalizeProject(raw) {
+  const text = String(raw || "").replace(/\s+/g, "").toLowerCase();
+  if (!text) return "";
+  if (text.includes("1000")) return "1000米";
+  if (text.includes("800")) return "800米";
+  if (text.includes("50")) return "50米";
+  if (text.includes("引体")) return "引体向上";
+  if (text.includes("仰卧")) return "仰卧起坐";
+  if (text.includes("跳远")) return "立定跳远";
+  if (text.includes("体前屈")) return "坐位体前屈";
+  if (text.includes("肺活量")) return "肺活量";
+  return PROJECTS.find((p) => text.includes(p)) || "";
+}
 
 db.exec(`
 CREATE TABLE IF NOT EXISTS users (
@@ -38,6 +53,16 @@ CREATE INDEX IF NOT EXISTS idx_orders_worker ON orders(worker_id);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_orders_dedup
 ON orders(student_no, project, strftime('%Y-%m-%d', created_at / 1000, 'unixepoch'));
 `);
+const orderCols = db.prepare("PRAGMA table_info(orders)").all();
+if (!orderCols.some((c) => c.name === "gender")) {
+  db.prepare("ALTER TABLE orders ADD COLUMN gender TEXT").run();
+}
+const orderRows = db.prepare("SELECT id, project FROM orders").all();
+const updateProjectStmt = db.prepare("UPDATE orders SET project=? WHERE id=?");
+for (const row of orderRows) {
+  const normalized = normalizeProject(row.project);
+  if (normalized && normalized !== row.project) updateProjectStmt.run(normalized, row.id);
+}
 
 function ensureAdmin() {
   const admin = db.prepare("SELECT id FROM users WHERE role='admin' LIMIT 1").get();
@@ -103,18 +128,19 @@ app.post("/api/auth/login", (req, res) => {
 app.post("/api/orders", (req, res) => {
   const clientName = String(req.body.name || "").trim();
   const studentNo = String(req.body.studentNo || "").trim();
-  const project = String(req.body.project || "").trim();
+  const project = normalizeProject(req.body.project);
   const amount = Number(req.body.amount ?? 0);
   const requirement = String(req.body.requirement || "").trim();
+  const gender = String(req.body.gender || "").trim();
   const remark = String(req.body.remark || "").trim();
-  if (!clientName || !studentNo || !project || Number.isNaN(amount)) {
-    return res.status(400).json({ message: "姓名/学号/项目必填" });
+  if (!clientName || !studentNo || !gender || !project || !remark || Number.isNaN(amount)) {
+    return res.status(400).json({ message: "姓名/学号/性别/项目/微信名必填" });
   }
   try {
     db.prepare(`
-      INSERT INTO orders(client_name, student_no, project, amount, requirement, remark, status, created_at)
-      VALUES(?,?,?,?,?,?,?,?)
-    `).run(clientName, studentNo, project, amount, requirement, remark, "pending", Date.now());
+      INSERT INTO orders(client_name, student_no, project, amount, requirement, remark, gender, status, created_at)
+      VALUES(?,?,?,?,?,?,?,?,?)
+    `).run(clientName, studentNo, project, amount, requirement, remark, gender, "pending", Date.now());
     res.json({ message: "下单成功" });
   } catch (e) {
     if (String(e.message).includes("idx_orders_dedup")) {

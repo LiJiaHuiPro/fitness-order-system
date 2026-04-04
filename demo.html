@@ -113,6 +113,11 @@
         <div class="grid grid-2">
           <input id="cName" placeholder="姓名" />
           <input id="cStudentNo" placeholder="学号" />
+          <select id="cGender">
+            <option value="">请选择性别</option>
+            <option value="男">男</option>
+            <option value="女">女</option>
+          </select>
           <div class="project-picker" style="grid-column: 1 / -1;">
             <input id="cProject" type="hidden" />
             <div class="project-options">
@@ -129,7 +134,7 @@
           </div>
         </div>
         <textarea id="cRequirement" rows="2" placeholder="要求"></textarea>
-        <textarea id="cRemark" rows="2" placeholder="备注（请写上微信名，有什么情况方便协商）"></textarea>
+        <input id="cRemark" placeholder="微信名（必填）" />
         <button id="createPublicOrderBtn">提交订单</button>
         <p id="clientMsg"></p>
       </div>
@@ -222,13 +227,28 @@
     function statusText(s) {
       return ({ pending: "待抢单", in_progress: "进行中", completed: "已完成", cancelled: "已取消" })[s] || s;
     }
+    const PROJECTS = ["50米", "800米", "1000米", "立定跳远", "坐位体前屈", "肺活量", "仰卧起坐", "引体向上"];
+    function normalizeProject(raw) {
+      const text = String(raw || "").replace(/\s+/g, "").toLowerCase();
+      if (!text) return "";
+      if (text.includes("1000")) return "1000米";
+      if (text.includes("800")) return "800米";
+      if (text.includes("50")) return "50米";
+      if (text.includes("引体")) return "引体向上";
+      if (text.includes("仰卧")) return "仰卧起坐";
+      if (text.includes("跳远")) return "立定跳远";
+      if (text.includes("体前屈")) return "坐位体前屈";
+      if (text.includes("肺活量")) return "肺活量";
+      return PROJECTS.find((p) => text.includes(p)) || "";
+    }
     function renderOrder(order, actionHtml = "") {
       const createdAtText = order.createdAt ? new Date(order.createdAt).toLocaleString("zh-CN") : "-";
       return `
       <div class="order">
         <div><b>${order.name}</b>（${order.studentNo}） - ${order.project}</div>
         <div class="muted">学生：${order.clientUsername} | 下单时间：${createdAtText}</div>
-        <div class="muted">要求：${order.requirement || "-"} | 备注：${order.remark || "-"}</div>
+        <div class="muted">性别：${order.gender || "-"} | 微信名：${order.remark || "-"}</div>
+        <div class="muted">要求：${order.requirement || "-"}</div>
         <div class="muted">接单人：${order.workerUsername || "暂无"} | <span class="badge ${order.status}">${statusText(order.status)}</span></div>
         ${actionHtml}
       </div>`;
@@ -241,7 +261,8 @@
       <div class="order">
         <div><b>${order.name}</b>（${order.studentNo}） - ${order.project}</div>
         <div class="muted">学生：${order.clientUsername} | 下单时间：${createdAtText}</div>
-        <div class="muted">要求：${order.requirement || "-"} | 备注：${order.remark || "-"}</div>
+        <div class="muted">性别：${order.gender || "-"} | 微信名：${order.remark || "-"}</div>
+        <div class="muted">要求：${order.requirement || "-"}</div>
         <div class="row" style="margin-top:8px;">
           <select class="grow" data-assign-worker="${order.id}" ${disabled}>
             <option value="">选择接单人</option>
@@ -261,10 +282,11 @@
         id: row.id,
         name: row.client_name,
         studentNo: row.student_no,
-        project: row.project,
+        project: normalizeProject(row.project) || row.project,
         amount: row.amount,
         requirement: row.requirement,
         remark: row.remark,
+        gender: row.gender,
         status: row.status,
         workerId: row.worker_id,
         workerUsername: row.worker_username,
@@ -332,17 +354,20 @@
         const payload = {
           name: $("cName").value.trim(),
           studentNo: $("cStudentNo").value.trim(),
+          gender: $("cGender").value.trim(),
           project: $("cProject").value.trim(),
           requirement: $("cRequirement").value.trim(),
           remark: $("cRemark").value.trim()
         };
-        if (!payload.name || !payload.studentNo || !payload.project) return showMsg("clientMsg", "姓名/学号/项目必填");
+        if (!payload.name || !payload.studentNo || !payload.gender || !payload.project || !payload.remark) {
+          return showMsg("clientMsg", "姓名/学号/性别/项目/微信名必填");
+        }
         api("/api/orders", {
           method: "POST",
           body: JSON.stringify(payload)
         })
           .then(() => {
-            ["cName", "cStudentNo", "cProject", "cRequirement", "cRemark"].forEach((id) => $(id).value = "");
+            ["cName", "cStudentNo", "cGender", "cProject", "cRequirement", "cRemark"].forEach((id) => $(id).value = "");
             document.querySelectorAll("[data-project-option]").forEach((b) => b.classList.remove("active"));
             showMsg("clientMsg", "下单成功", true);
           })
@@ -359,17 +384,19 @@
         const mine = mineRows.map(mapOrder);
         if (hall.length) {
           const groupedHall = hall.reduce((acc, order) => {
-            const key = order.project || "未分类";
+            const key = normalizeProject(order.project);
+            if (!key) return acc;
             acc[key] = acc[key] || [];
             acc[key].push(order);
             return acc;
           }, {});
-          $("hallOrders").innerHTML = Object.entries(groupedHall).map(([project, list]) => `
+          const groupedHtml = Object.entries(groupedHall).map(([project, list]) => `
             <div style="margin-bottom:12px;">
               <h4 style="margin:0 0 8px;">${project}（${list.length}单）</h4>
               ${list.map((o) => renderOrder(o, `<button data-accept="${o.id}">接单</button>`)).join("")}
             </div>
           `).join("");
+          $("hallOrders").innerHTML = groupedHtml || '<p class="muted">暂无可抢订单</p>';
         } else {
           $("hallOrders").innerHTML = '<p class="muted">暂无可抢订单</p>';
         }
@@ -410,9 +437,9 @@
         const progress = stats.inProgress;
         const done = stats.completed;
         const rate = total ? ((done / total) * 100).toFixed(1) + "%" : "0%";
-        const rank = (stats.ranks || []).map((r) => `${r.worker_username}: ${r.cnt}单`).join(" | ") || "暂无";
         const projectStats = rows.reduce((acc, row) => {
-          const key = row.project || "未分类";
+          const key = normalizeProject(row.project);
+          if (!key) return acc;
           if (!acc[key]) acc[key] = { total: 0, pending: 0, in_progress: 0, completed: 0 };
           acc[key].total += 1;
           acc[key][row.status] = (acc[key][row.status] || 0) + 1;
@@ -430,7 +457,6 @@
           <div class="stat">进行中<b>${progress}</b></div>
           <div class="stat">已完成<b>${done}</b></div>
           <div class="stat">完成率<b>${rate}</b></div>
-          <div class="stat">接单排行<b style="font-size:14px;">${rank}</b></div>
           <div style="grid-column: 1 / -1; text-align:left;">
             <h4 style="margin:4px 0 10px;">按项目分类统计</h4>
             ${projectStatsHtml}
