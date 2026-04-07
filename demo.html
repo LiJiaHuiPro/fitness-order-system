@@ -265,13 +265,14 @@
       if (text.includes("肺活量")) return "肺活量";
       return PROJECTS.find((p) => text.includes(p)) || "";
     }
-    function renderOrder(order, actionHtml = "") {
+    function renderOrder(order, actionHtml = "", options = {}) {
       const createdAtText = order.createdAt ? new Date(order.createdAt).toLocaleString("zh-CN") : "-";
+      const wechatText = options.hideWechat ? "已隐藏" : (order.remark || "-");
       return `
       <div class="order">
         <div><b>${order.name}</b>（${order.studentNo}） - ${order.project}</div>
         <div class="muted">学生：${order.clientUsername} | 下单时间：${createdAtText}</div>
-        <div class="muted">性别：${order.gender || "-"} | 微信名：${order.remark || "-"}</div>
+        <div class="muted">性别：${order.gender || "-"} | 微信名：${wechatText}</div>
         <div class="muted">要求：${order.requirement || "-"}</div>
         <div class="muted">接单人：${order.workerUsername || "暂无"} | <span class="badge ${order.status}">${statusText(order.status)}</span></div>
         ${actionHtml}
@@ -439,7 +440,7 @@
           const groupedHtml = Object.entries(groupedHall).map(([project, list]) => `
             <div style="margin-bottom:12px;">
               <h4 style="margin:0 0 8px;">${project}（${list.length}单）</h4>
-              ${list.map((o) => renderOrder(o, `<button data-accept="${o.id}">接单</button>`)).join("")}
+              ${list.map((o) => renderOrder(o, `<button data-accept="${o.id}">接单</button>`, { hideWechat: true })).join("")}
             </div>
           `).join("");
           $("hallOrders").innerHTML = groupedHtml || '<p class="muted">暂无可抢订单</p>';
@@ -451,7 +452,7 @@
             const actions = [];
             if (o.status === "in_progress") actions.push(`<button class="success" data-complete="${o.id}">标记完成</button>`);
             if (o.status === "in_progress" || o.status === "completed") actions.push(`<button class="secondary" data-revert="${o.id}">撤销回大厅</button>`);
-            return renderOrder(o, actions.join(""));
+            return renderOrder(o, actions.join(""), { hideWechat: true });
           }).join("")
           : '<p class="muted">暂无接单记录</p>';
         document.querySelectorAll("[data-accept]").forEach((btn) => {
