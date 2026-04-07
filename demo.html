@@ -267,12 +267,14 @@
     }
     function renderOrder(order, actionHtml = "", options = {}) {
       const createdAtText = order.createdAt ? new Date(order.createdAt).toLocaleString("zh-CN") : "-";
-      const wechatText = options.hideWechat ? "已隐藏" : (order.remark || "-");
+      const genderWechatLine = options.hideWechat
+        ? `<div class="muted">性别：${order.gender || "-"}</div>`
+        : `<div class="muted">性别：${order.gender || "-"} | 微信名：${order.remark || "-"}</div>`;
       return `
       <div class="order">
         <div><b>${order.name}</b>（${order.studentNo}） - ${order.project}</div>
         <div class="muted">学生：${order.clientUsername} | 下单时间：${createdAtText}</div>
-        <div class="muted">性别：${order.gender || "-"} | 微信名：${wechatText}</div>
+        ${genderWechatLine}
         <div class="muted">要求：${order.requirement || "-"}</div>
         <div class="muted">接单人：${order.workerUsername || "暂无"} | <span class="badge ${order.status}">${statusText(order.status)}</span></div>
         ${actionHtml}
